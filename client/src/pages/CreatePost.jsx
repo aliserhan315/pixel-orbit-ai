@@ -1,4 +1,4 @@
-/* eslint-disable no-unused-vars */
+ 
 import { useState } from 'react';
 import {FormField,Loader} from '../components'
 import { useNavigate } from 'react-router-dom';
@@ -24,39 +24,45 @@ const CreatePost = () => {
     const randomPrompt = getRandomPrompt(form.prompt);
     setForm({ ...form, prompt: randomPrompt });
   };
-const generateImage = async () => {
-  if (form.prompt) {
-    try {
-      setGeneratingImg(true);
-
-      const response = await fetch("http://localhost:8080/api/v1/dalle", { 
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: form.prompt }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Error: ${errorText}`);
+  const generateImage = async () => {
+    if (form.prompt) {
+      try {
+        setGeneratingImg(true);
+  
+        const response = await fetch("http://localhost:8000/generate-image", { 
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: form.prompt,
+            negative_prompt: "", 
+            number_of_images: 1, 
+            aspect_ratio: "1:1", 
+          }),
+        });
+  
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Error: ${errorText}`);
+        }
+  
+        const data = await response.json();
+  
+        if (data.images && data.images.length > 0) {
+          // Assuming you're using the first image from the response
+          setForm({ ...form, photo: `data:image/png;base64,${data.images[0]}` });
+        } else {
+          throw new Error("Image generation failed");
+        }
+      } catch (err) {
+        alert(err.message || 'Something went wrong');
+      } finally {
+        setGeneratingImg(false);
       }
-
-      const data = await response.json();
-
-        if (data.photo) {
-            setForm({ ...form, photo: `data:image/jpeg;base64,${data.photo}` }); // Check if data format is image/jpeg or other.
-        }
-        else {
-          throw new Error("Image generation failed")
-        }
-    } catch (err) {
-      alert(err.message || 'Something went wrong');
-    } finally {
-      setGeneratingImg(false);
+    } else {
+      alert('Please provide a proper prompt');
     }
-  } else {
-    alert('Please provide a proper prompt');
-  }
-};
+  };
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
